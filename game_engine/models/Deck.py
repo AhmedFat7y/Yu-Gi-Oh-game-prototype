@@ -25,7 +25,7 @@ class Deck:
   def clean_cards(self):
     temp_cards = list(self.cards)
     for card in temp_cards:
-      if card.card_type != 'N/A':
+      if card.monster_type == 'N/A':
         self.cards.remove(card)
     random.shuffle(self.cards)
 

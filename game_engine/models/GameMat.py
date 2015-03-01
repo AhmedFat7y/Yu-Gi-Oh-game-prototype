@@ -28,11 +28,36 @@ class GameMat:
     |                               |
     |_______________________________|
     """
-    print  '_' * 10
-    for card in monstersZone1.cards:
+    print  '', '_' * 17
+    temp_str = '|  '
+    i = 0
+    for card in self.monstersZone1.cards:
       if card.is_def():
-        print '_'
+        temp_str += '_'
       elif card.is_attk():
-        print '|'
+        temp_str += '|'
       elif card.is_set():
-        print '\\'
+        temp_str += '\\'
+      i += 1
+      temp_str += '  '
+    if i < 5:
+        temp_str += '#  ' * (5-i)
+    print (temp_str + '|')
+    print '|                 |'
+    print '|                 |'
+    i=0
+    temp_str = "|  "
+    for card in self.monstersZone2.cards:
+      if card.is_def():
+        temp_str += '_'
+      elif card.is_attk():
+        temp_str += '|'
+      elif card.is_set():
+        temp_str += '\\'
+      i += 1
+      temp_str += '  '
+    if i < 5:
+      temp_str += '#  ' * (5-i)
+    print (temp_str + '|')
+    print  '', '_' * 17
+    
