@@ -40,8 +40,22 @@ class Deck:
   def load_yugi_cards(self):
     self.load_deck_cards_json('data/yugi_cards.json')
 
-  def draw_card(self):
-    return self.cards.pop()
+  def _draw_specific_card(self, card_name):
+    for card in list(self.cards):
+      if card.name == card_name:
+        return card
+    raise Exception('Wrong Card Name')
+
+  def _draw_first_card(self):
+    return self.cards[0]
+
+  def draw_card(self, card_name=None):
+    if card_name:
+      card = self._draw_specific_card(card_name)
+    else:
+      card = self._draw_first_card()
+    self.cards.remove(card)
+    return card
 
   def __str__(self):
     return str(len(self.cards))

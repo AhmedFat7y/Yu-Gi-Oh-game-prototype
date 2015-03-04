@@ -12,7 +12,7 @@ class Card:
     self.position = 'def'
     self.face = 'down'
 
-  def summon(self):
+  def summon_attk(self):
     self.position = 'attk'
     self.face = 'up'
 
@@ -24,13 +24,29 @@ class Card:
     summon_def(self)
 
   def is_def(self):
-    return self.position == 'def'
+    return self.position == 'def' and self.face == 'up'
 
   def is_attk(self):
     return self.position == 'attk'
 
   def is_set(self):
-    return self.is_def() and self.face == 'down'
+    return self.position == 'def' and self.face == 'down'
+
+  def set_position(self, state):
+    if state == 'set':
+      self.summon_set()
+    elif state == 'def':
+      self.summon_def()
+    elif state == 'attk':
+      self.summon_attk()
+    elif state == 'flip':
+      self.flip_summon()
+    else:
+      raise Exception ('UnKnown State . . .')
+
+  def reset(self):
+    self.position = ''
+    self.face = ''
 
   @staticmethod
   def card_loader(card_dict):
@@ -46,5 +62,6 @@ class Card:
       defence = int(card_dict['defence'])
     return Card(card_dict['title'], attack,
       defence, level, card_dict['monster_type'])
+
   def __str__(self):
-    return "name: %s, attack: %s, defece, %s" % (self.name, self.attack, self.defence)
+    return "(name: %s, level: %s, attack: %s, defece, %s)" % (self.name, self.level, self.attack, self.defence)
