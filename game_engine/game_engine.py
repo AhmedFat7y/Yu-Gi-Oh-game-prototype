@@ -4,7 +4,11 @@ from models.Graveyard import Graveyard
 from models.MonstersZone import MonstersZone
 from models.GameMat import GameMat
 from models.Player import Player
+from turn import Turn
+import os
+import json
 import random
+import pdb
 
 
 class GameEngine:
@@ -23,6 +27,7 @@ class GameEngine:
 
   def __init__(self):
     self.cards_used_this_turn = []
+    self.battles = []
     self.game_running = False
     self.current_phase = GameEngine.DRAW_PHASE
     self.current_battle_Step = GameEngine.BATTLE_PHASE_START_STEP
@@ -39,6 +44,11 @@ class GameEngine:
 
   def is_first_turn(self):
     return self.turns == 0
+  def opposing_player(self):
+    if self.turns % 2 == 1:
+      return self.player1
+    else:
+      return self.player2
 
   def current_player(self):
     if self.turns % 2 == 0:
@@ -65,11 +75,24 @@ class GameEngine:
   def enter_battle_phase(self):
     if self.current_phase == GameEngine.BATTLE_PHASE:
       self.current_battle_Step = GameEngine.BATTLE_PHASE_START_STEP
+      return True
+    return False
 
   def end_battle_phase(self):
     if self.current_phase == GameEngine.BATTLE_PHASE:
       self.current_battle_Step = GameEngine.BATTLE_PHASE_END_STEP
+  def send_to_opposing_graveyard(self, card):
+    self.game_mat.opposing_graveyard().add_card(card)
+    self.game_mat.opposing_monstersZone().remove_card(card)
+  
+  def send_to_current_graveyard(self, card):
+    self.game_mat.current_graveyard().add_card(card)
+    self.game_mat.current_monstersZone().remove_card(card)
 
+  def modify_current_player_life_points(self, val):
+    self.current_player().life_points += val
+  def modify_opposing_player_life_points(self, val):
+    self.opposing_player().life_points += val
   def goto_next_phase(self):
     print '[phase-------] moving phases'
     print '--------------------------------------------------------------'
@@ -82,16 +105,61 @@ class GameEngine:
       return
     if self.current_phase == GameEngine.END_PHASE:
       self.turns += 1
-      self.current_phase = GameEngine.DRAW_PHASE
-    self.current_phase = (self.current_phase + 1) % (GameEngine.END_PHASE) #go to next phase
+    self.current_phase = (self.current_phase + 1) % (GameEngine.END_PHASE + 1) #go to next phase
+  
+  def _damage_calculation_set_case_(self, attacker, target):
+    result = target.defence - attacker.attack
+    if result < 0:
+      self.send_to_opposing_graveyard(target)
+      self.modify_opposing_player_life_points(result)
+
+  
+  def _damage_calculation_def_case_(self, attacker, target):
+    result = target.defence - attacker.attack
+    if result < 0:
+      self.send_to_opposing_graveyard(target)
+      self.modify_opposing_player_life_points(result)
+  
+  def _damage_calculation_attk_case_(self, attacker, target):
+    result = attacker.attack - target.attack
+    if result > 0:
+      self.send_to_opposing_graveyard(target)
+      self.modify_opposing_player_life_points(-1 * result)
+    elif result == 0:
+      self.send_to_opposing_graveyard(target)
+      self.send_to_current_graveyard(attacker)
+    else:
+      self.send_to_current_graveyard(attacker)
+      self.modify_current_player_life_points(result) #because result is -ve already
+
+  def fight(self, attacker_name, target_name):
+    attacker = self.game_mat.current_monstersZone().get_card(attacker_name)
+    target = self.game_mat.opposing_monstersZone().get_card(target_name)
+    print '[action------] Monster: %s is attacking Monster: %s' % (attacker.name, target.name)
+    if target.is_set():
+      target.flip_summon()
+    self.battles.append([attacker, target])
+  
+  def damage_calculation(self):
+    for battle in self.battles:
+      if battle[-1].is_set():
+        self._damage_calculation_set_case_(battle[0], battle[1])
+      elif battle[-1].is_def():
+        self._damage_calculation_def_case_(battle[0], battle[1])
+      elif battle[-1].is_attk():
+        self._damage_calculation_attk_case_(battle[0], battle[1])
+    self.battles = []
 
   def start(self):
     self.game_running = True
     #player1.first_draw()
     #player2.first_draw()
+
   def check_battle_step(self):
     current_player = self.current_player()
-    if self.current_battle_Step == GameEngine.BATTLE_PHASE_START_STEP:
+    if self.current_phase != GameEngine.BATTLE_PHASE:
+      print '[error-------] Not battle phase'
+    elif self.current_battle_Step == GameEngine.BATTLE_PHASE_START_STEP:
       print '[Battle Phase] Start Step'
       print '[action------] Player-%i: Starts battle . . .' % current_player.id
     elif self.current_battle_Step == GameEngine.BATTLE_PHASE_BATTLE_STEP:
@@ -101,8 +169,10 @@ class GameEngine:
     elif self.current_battle_Step == GameEngine.BATTLE_PHASE_END_STEP:
       print '[Battle Phase] End Step'
       print '[action------] Player-%i: Ends battle . . .' % current_player.id
-    elif self.current_battle_Step == GameEngine.BATRTLE_PHASE_NONE_STEP or self.current_phase != GameEngine.BATTLE_PHASE:
+    else:
       print '[error-------] Not battle phase'
+
+
   def check_phase(self):
     current_player = self.current_player()
     if self.current_phase == GameEngine.DRAW_PHASE:
@@ -131,27 +201,51 @@ class GameEngine:
 
 
 #---------------------------------------------------------------------------------------------------------#
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+
+def load_turns():
+  turns = []
+  turns_path = 'data/turns.json'
+  with open(os.path.join(BASE_DIR, turns_path)) as json_f:
+    turns = json.loads(json_f.read(), object_hook=Turn.loader)
+  return turns
+
+
+
 if __name__ == '__main__':
   game_engine = GameEngine()
   game_engine.start()
-  turns = [('Battle Ox', 'set')]
+  turns = load_turns()
+
   for turn in turns:
+    attacks = zip(turn.cards_to_attack, turn.cards_to_target)
+    game_engine.check_phase()
     player = game_engine.current_player()
     """ Draw Phase """
-    player.draw_card(turn[0])
-    game_engine.check_phase()
+    player.draw_card(turn.card_to_draw)
     game_engine.goto_next_phase()
     """ Standby Phase """
     game_engine.check_phase()
     game_engine.goto_next_phase()
     """ Main Phase 1 """
     game_engine.check_phase()
-    player.play_card(turn[1])
+    player.play_card(turn.card_to_play, turn.card_state)
     game_engine.goto_next_phase()
     """ Battle Phase """
-    game_engine.enter_battle_phase()
-    game_engine.battle_loop()
+    battle = game_engine.enter_battle_phase()
+    game_engine.check_battle_step()
+    for attack in attacks:
+      game_engine.battle_loop()
+      game_engine.check_battle_step()
+      result = game_engine.fight(attack[0], attack[1])
+      game_engine.battle_loop()
+      game_engine.damage_calculation()
+      game_engine.check_battle_step()
     game_engine.end_battle_phase()
+    game_engine.check_battle_step()
+    if battle: 
+      game_engine.goto_next_phase()
     """ Main Phase 2 """
     game_engine.check_phase()
     game_engine.goto_next_phase()
@@ -159,3 +253,7 @@ if __name__ == '__main__':
     game_engine.check_phase()
     game_engine.goto_next_phase()
     game_engine.game_mat.display()
+    print '####################################################'
+    print ''
+  print game_engine.player1
+  print game_engine.player2

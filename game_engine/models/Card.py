@@ -21,7 +21,7 @@ class Card:
     self.face = 'up'
 
   def flip_summon(self):
-    summon_def(self)
+    self.summon_def()
 
   def is_def(self):
     return self.position == 'def' and self.face == 'up'
@@ -49,6 +49,14 @@ class Card:
     self.face = ''
 
   @staticmethod
+  def get_card_by_name(cards, card_name):
+    for card in cards:
+      if card.name == card_name:
+        return card
+    err_msg = 'Wrong Card Name "%s"\nAvailble cards: %s' % (card_name, [card.name for card in cards ])
+    raise Exception(err_msg)
+
+  @staticmethod
   def card_loader(card_dict):
     # print card_dict
     level = 'N/A'
@@ -62,6 +70,7 @@ class Card:
       defence = int(card_dict['defence'])
     return Card(card_dict['title'], attack,
       defence, level, card_dict['monster_type'])
-
+  def __unicode__(self):
+    return self.__str__()
   def __str__(self):
     return "(name: %s, level: %s, attack: %s, defece, %s)" % (self.name, self.level, self.attack, self.defence)

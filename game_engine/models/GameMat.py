@@ -14,6 +14,11 @@ class GameMat:
     self.graveyard2 = Graveyard()
     self.game_engine = game_engine
 
+  def opposing_monstersZone(self):
+    if self.game_engine.current_player().id == 2:
+      return self.monstersZone1
+    else:
+      return  self.monstersZone2
 
   def current_monstersZone(self):
     if self.game_engine.current_player().id == 1:
@@ -21,11 +26,18 @@ class GameMat:
     else:
       return  self.monstersZone2
 
+  def opposing_graveyard(self):
+    if self.game_engine.current_player().id == 2:
+      return self.graveyard1
+    else:
+      return  self.graveyard2
+
   def current_graveyard(self):
     if self.game_engine.current_player().id == 1:
       return self.graveyard1
     else:
       return  self.graveyard2
+
   def display(self):
     """
      _______________________________

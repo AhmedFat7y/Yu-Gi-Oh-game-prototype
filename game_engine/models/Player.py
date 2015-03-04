@@ -1,5 +1,7 @@
-import random
+from Card import Card
 from Errors import NO_ERROR, NO_ENOUGH_SACRIFICES, MONSTERS_ZONE_IS_FULL
+import random
+
 
 def check_error_message(error_code):
   if error_code == NO_ERROR:
@@ -22,6 +24,7 @@ def print_sucess_summon(card, sacrifices):
 
 class Player:
   def __init__(self, id, deck, game_engine):
+    self.life_points = 8000
     self.id = id
     self.first_turn = False
     self.deck = deck
@@ -56,9 +59,8 @@ class Player:
     monstersZone.add_monster(card)
     return True, NO_ERROR, sacrifices
 
-  def pick_card(self, monstersZone):
-    card = self.cards_in_hand[-1]
-    return card
+  def pick_card(self, card_name, monstersZone):
+    return Card.get_card_by_name(self.cards_in_hand, card_name)
 
   def send_to_graveyard(self, cards):
     for card in cards:
@@ -69,12 +71,12 @@ class Player:
     return True
 
   #test method
-  def play_card(self, card_state):
+  def play_card(self, card_name, card_state):
     if self.game_engine.current_phase != self.game_engine.MAIN_PHASE_1:
       print '[error-------] only trap cards are allowed'
       return False
     monstersZone = self.game_mat.current_monstersZone()
-    card = self.pick_card(monstersZone)
+    card = self.pick_card(card_name, monstersZone)
     card.set_position(card_state)
     result = self.normal_summon(card, monstersZone)
     if result and result[0]:
@@ -83,12 +85,14 @@ class Player:
     else:
       print_error(card, result[1])
       card.reset()
+      return
     self.send_to_graveyard(result[-1])
     print '[action------] player %i played card %s' % (self.id, card)
+    self.game_engine.use_this_card(card)
     return True
 
   def goes_first(self):
     self.first_turn = True
 
   def __str__(self):
-    return "id: %i, deck: %s" % (self.id, self.deck.__str__())
+    return "id: %i, deck: %s, life points: %s" % (self.id, self.deck, self.life_points)
